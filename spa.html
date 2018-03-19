@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'></meta>
+    <title>spa</title>
+</head>
+<body>
+    <script>
+        class Monitor {
+            constructor(opt) {
+                opt = opt || {};
+                let last = null;
+                let runURLCheck = () => {
+                    let url = location.href;
+                    if(url !== last) {
+                        let event = {
+                            oldValue: last,
+                            newValue: url,
+                        }
+                        last = url;
+                        if(typeof opt.onChange === 'function') {
+                            opt.onChange(event);
+                        }
+                    }
+                }
+                window.setInterval(runURLCheck, 500);
+            }
+        }
+
+        let mws = [];
+        let spa = {
+            add(mw) {
+                if(typeof mw === 'function') {
+                    mws.push(mw);
+                }
+            },
+            dispatch(context) {
+                let index = 0;
+                let next = () => {
+                    let mw = mws[index++];
+                    if(mw) {
+                        return mw(context, next);
+                    }
+                }
+                next();
+            },
+        }
+
+        let m = new Monitor({
+            onChange(e) {
+                spa.dispatch({
+                    request: new URL(e.newValue),
+                })
+            }
+        })
+
+        let rest = opt => {
+            let matchers = opt.matchers || [];
+            let str2matcher = url => {
+                let ret = {
+                    url,
+                    keys: [],
+                }
+                let reg = url.replace(/:(.+?)(?=\/|$)/g, ($1, $2) => {
+                    ret.keys.push($2);
+                    return '([^/]+?)';
+                })
+                ret.matcher = new RegExp(`^${reg}$`, 'gi');
+                return ret;
+            }
+            let getParams = path => {
+                let ret = {};
+                matchers.find(item => {
+                    let res = item.matcher.exec(path);
+                    if(res) {
+                        item.keys.forEach((item, index) => {
+                            ret[key] = res[index + 1] || '';
+                        })
+                        return true;
+                    }
+                })
+                return ret;
+            }
+            matchers.forEach((item, index, arr) => {
+                arr[index] = str2matcher(item);
+            })
+
+            return (context, next) => {
+                let { request } = context;
+                request.restParams = getParams(request.pathname);
+                if(!!request.hash) {
+                    let hash = new URL(request.hash.substr(1), request.origin);
+                    context.hash = hash;
+                    hash.restParams = getParams(hash.pathname);
+                }
+                next();
+            }
+        }
+
+        let history = opt => {
+            let iframe = document.createElement('iframe');
+            iframe.style.position = 'absolute';
+            iframe.style.visibility = 'hidden';
+            document.body.appendChild(iframe);
+            iframe.src = 'about:blank';
+            window.history_locker = {};
+            let lock_key = `lock-${new Date()}`;
+            let doPushHistory = hash => {
+                if(!hash || histoy_locker[lock_key]) {
+                    history_locker[lock_key] = !1;
+                    return;
+                }
+                try {
+                    let doc = iframe.contentWindow.document;
+                    doc.write(`
+                        <head>
+                            <title>${document.title}</title>
+                            <script>parent.history_locker[${lock_key}]=!0;parent.location.hash=decodeURIComponent(${encodeURIComponent(hash)});</script>
+                        </head>
+                        <body></body>
+                    `)
+                    doc.close();
+                    history_locker[lock_key] = !1;
+                } catch (e) {
+
+                }
+            }
+
+            return (context, next) => {
+                doPushHistory(context.request.hash);
+                next();
+            }
+        }
+
+        let rewrite = opt => {
+            
+        }
+    </script>
+</body>
+</html>
