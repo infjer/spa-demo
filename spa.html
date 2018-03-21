@@ -133,8 +133,195 @@
         }
 
         let rewrite = opt => {
-            
+            let rules = opt || [];
+            rules.forEach(item => {
+                let { target, matcher } = item;
+                if(typeof target !== 'function') {
+                    item.target = ctx => target;
+                }
+                if(typeof matcher === 'function') return;
+                if(typeof matcher === 'string') {
+                    item.matcher = ctx => ctx.request.pathname === matcher;
+                    return;
+                }
+                if(matcher instanceof RegExp) {
+                    item.matcher = ctx => matcher.test(ctx.request.pathname);
+                    return;
+                }
+            })
+
+            return (context, next) => {
+                let ret = rules.find(item => item.matcher(context))
+                if(!!ret) {
+                    let target = ret.target(context);
+                    context.request.pathname = target;
+                    if(!!context.hash) {
+                        context.hash.pathname = target;
+                    }
+                }
+                next();
+            }
         }
+
+        let route = opt => {
+            let routes = opt.routes || {};
+            let current = null;
+            return (context, next) => {
+                let module = routes[context.request.pathname];
+                if(!module) {
+                    redirect('/404');
+                    return;
+                }
+                if(!(module instanceof Module)) {
+                    module = new Module();
+                    route[name] = module;
+                    module.build(context);
+                }
+                if(module === current) {
+                    module.refresh(context);
+                } else {
+                    if(current) {
+                        current.hide();
+                    }
+                    current = module;
+                    current.show(context);
+                }
+                next();
+            }
+        }
+
+        class Filter {
+            constructor(context, next, chain) {
+                this._context = context;
+                this._chain = chain;
+                this._next = next;
+            }
+            chain() {
+                if(this._chain) {
+                    this._chain();
+                }
+            }
+            next() {
+                if(this._next) {
+                    this._next();
+                }
+            }
+            doFilter() {
+
+            }
+        }
+
+        class AuthFilter extends Filter {
+            doFilter() {
+                let session = this._context.session;
+                if(!session || !session.user || !session.user.id) {
+                    redirect('/login');
+                    return;
+                }
+                super.chain();
+            }
+        }
+
+        let filters = [];
+        let filter = {
+            add(ft) {
+                if(ft instanceof Array) {
+                    ft.forEach(item => filter.add(item))
+                    return;
+                }
+                filters.push(filter);
+            },
+            mw(context, next) {
+                let index = 0;
+                let chain = () => {
+                    let Filter = filter[index++];
+                    if(Filter) {
+                        let ft = new Filter(context, next, chain);
+                        ft.doFilter();
+                    }
+                }
+                chain();
+            },
+        }
+
+        class Module {
+            constructor(config) {
+                this._parent = config.parent;
+            }
+            build(options) {
+
+            }
+            show(context) {
+                if(this._body) {
+                    this._parent.appendChild(this._body);
+                }
+            }
+            refresh() {
+
+            }
+            hide() {
+                if(this._body) {
+                    fragment.appendChild(this._body);
+                }
+            }
+            destroy() {
+
+            }
+        }
+
+        class User extends Module {
+            build(options) {
+                super.build(options);
+                this._body = document.createElement('div');
+                this._unode = document.createElement('p');
+                this._body.appendChild(this._unode);
+            }
+            show(context) {
+                super.show(context);
+                this._doUpdateUser(context.request.restParams.uid);
+            }
+            refresh(context) {
+                super.refresh(context);
+                this._doUpdateUser(context.request.restParams.uid);
+            }
+            _doUpdateUser(uid) {
+                this._unode.innerHTML = `<p>大家好，我是用户${uid}</p>`
+            }
+        }
+
+        let app = {
+            start(options) {
+                spa.add(rest(options));
+                spa.add(list());
+                spa.add(rewrite(options));
+                spa.add(filter.mw);
+                filter.add(AuthFilter);
+                spa.add(router(options));
+                let monitor = new Monitor({
+                    onChange(event) {
+                        let context = {
+                            request: new URL(event.newValue),
+                        }
+                        spa.dispatch(context);
+                    }
+                })
+            }
+        }
+
+        app.start({
+            matchers: [
+                '/user/:id',
+                '/group/:gid/user/:uid',
+            ],
+            rules: [{
+                matcher: /\/group\/[\d]+\/user\/[\d]+\//i,
+                target: '/user/',
+            },],
+            routes: {
+                '/user/': USER,
+                '/group/': Group,
+            },
+        })
     </script>
 </body>
 </html>
