@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'></meta>
+    <title>app</title>
+</head>
+<body>
+    <a href='#/user/123456'>用户</a>
+    <a href='#/group/7890'>分组</a>
+    <script type='module'>
+        import { start } from './app.js';
+        import { User } from './module/User.js';
+        import { Group } from './module/Group.js';
+        import { NotFound } from './module/NotFound.js'
+        import { Login } from './module/Login.js'
+
+        start({
+            parent: document.body,
+            matchers: [
+                '/user/:uid',
+                '/group/:gid'
+            ]
+        })
+    </script>
+</body>
+</html>
