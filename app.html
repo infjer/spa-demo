@@ -19,7 +19,23 @@
             matchers: [
                 '/user/:uid',
                 '/group/:gid'
-            ]
+            ]，
+            rules: [
+                {
+                    matcher: /\/user\/[\d]+/i,
+                    target: '/user/'
+                },
+                {
+                    matcher: /\/group\/[\d]+/i,
+                    target: '/group/'
+                }
+            ],
+            routes: {
+                '/user/': User,
+                '/group/': Group,
+                '/login': Login,
+                '/404': NotFound
+            }
         })
     </script>
 </body>
