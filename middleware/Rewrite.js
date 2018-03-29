@@ -1,6 +1,23 @@
 import { MiddleWare } from './MiddleWare.js';
 
-export function rewrite() {
+export function rewrite(options) {
+    let rules = options.rules || [];
+    rules.forEach(item => {
+        let { target, matcher } = item;
+        if(typeof target !== 'function') {
+            item.target = ctx => target;
+        }
+        if(typeof matcher === 'function') return;
+        if(typeof matcher === 'string') {
+            item.matcher = ctx => ctx.request.pathname === matcher;
+            return;
+        }
+        if(matcher instanceof RegExp) {
+            item.matcher = ctx => matcher.test(ctx.request.pathname);
+            return;
+        }
+    })
+
     return class Rewrite extends MiddleWare {
         constructor(next, options) {
             super(next, options);

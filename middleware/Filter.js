@@ -1,8 +1,10 @@
+import { MiddleWare } from './MiddleWare.js';
+
 export function add(ft) {
     filters.push.apply(filters, arguments);
 }
 
-export class Filter exntends MiddleWare {
+export class Filter extends MiddleWare {
     constructor(next, options) {
         super(next, options);
         this.name = 'FILTER';
