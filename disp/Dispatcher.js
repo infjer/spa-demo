@@ -18,8 +18,8 @@ export class Dispatcher extends Event {
         let index = 0;
         let list = this[middleware];
         let next = () => {
-            let MiddleWare = list[index++];
-            if(MiddleWare) {
+            let _MiddleWare = list[index++];
+            if(_MiddleWare) {
                 let mw = new MiddleWare(next, {
                     context,
                     redirect: this.redirect.bind(this)

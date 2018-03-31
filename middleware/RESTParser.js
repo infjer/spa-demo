@@ -17,9 +17,9 @@ export function rest(options) {
         ret.matcher = new RegExp(`^${reg}(?=/|$)`, 'gi');
         return ret;
     }
-    function gerParams(path) {
+    function getParams(path) {
         let ret = {};
-        matcher.find(function(it) {
+        matchers.find(function(it) {
             it.matcher.lastIndex = -1;
             let res = it.matcher.exec(path);
             if(res) {
@@ -36,6 +36,16 @@ export function rest(options) {
         constructor(next, options) {
             super(next, options);
             this.name = 'REST_PARSER';
+        }
+        exec(context) {
+            let { request } = context;
+            request.restParams = getParams(request.pathname);
+            if(!!request.hash) {
+                let hash = new URL(request.hash.substr(1), request.origin);
+                context.hash = hash;
+                hash.restParams = getParams(hash.pathname);
+            }
+            this.next();
         }
     }
 }

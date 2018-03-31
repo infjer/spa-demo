@@ -1,7 +1,7 @@
 const evtname = Symbol('events');
 
 export class Event {
-    contructor(options={}) {
+    constructor(options={}) {
         this[evtname] = {};
         Object.keys(options).forEach(key => {
             let it = options[key];
@@ -29,7 +29,7 @@ export class Event {
         }
     }
     emit(type, ...args) {
-        let list = this[evtname][type];
+        let list =  this[evtname][type];
         if(list && list.length > 0) {
             list.forEach(item => item.apply(null, args));
         }

@@ -10,7 +10,6 @@ const interval = Symbol('interval');
 export class Monitor extends Event {
     constructor(options={}) {
         super(options);
-        // this[last];
         this[last] = options.last;
         this[key] = options.key;
         this[source] = options.source || {};

@@ -1,5 +1,7 @@
 import { MiddleWare } from './MiddleWare.js';
 
+let filters = [];
+
 export function add(ft) {
     filters.push.apply(filters, arguments);
 }
@@ -11,7 +13,7 @@ export class Filter extends MiddleWare {
     }
     exec(context) {
         super.exec(context);
-        if(!filter.length) {
+        if(!filters.length) {
             this.next(context);
             return;
         }

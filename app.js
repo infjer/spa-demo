@@ -7,7 +7,7 @@ import { Monitor } from './disp/Monitor.js';
 
 let dsp = new Dispatcher({
     redirect: event => {
-        location.hash = event.url
+        location.hash = event.url;
     }
 })
 
@@ -15,6 +15,7 @@ export function start(options) {
     dsp.add(rest(options));
     dsp.add(rewrite(options));
     dsp.add(Filter);
+    // dsp.add(AuthFilter);
     dsp.add(router(options));
 
     let monitor = new Monitor({
